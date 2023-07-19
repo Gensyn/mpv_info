@@ -1,0 +1,42 @@
+#!/bin/sh
+metadata=$(echo '{ "command": ["get_property", "metadata"] }' | socat - /tmp/mpvsocket | sed -E 's/\\n/ /g') 2> /dev/null
+
+if [ $? -ne 0 ] || [ -z "$metadata" ]
+then
+  echo "{}"
+  exit 0
+fi
+
+artist=$(echo "$metadata" | grep -ioP '"artist":"\K[^"]+')
+
+if [ $? -ne 0 ]
+then
+  artist=$(echo "$metadata" | grep -ioP '"icy-name":"\K[^"]+')
+fi
+
+title=$(echo "$metadata" | grep -ioP '"title":"\K[^"]+')
+
+if [ $? -ne 0 ]
+then
+  title=$(echo "$metadata" | grep -ioP '"icy-title":"\K[^"]+')
+fi
+
+album=$(echo "$metadata" | grep -ioP '"album":"\K[^"]+')
+album_artist=$(echo "$metadata" | grep -ioP '"album_artist":"\K[^"]+')
+track=$(echo "$metadata" | grep -ioP '"track":"\K[^"]+')
+
+if [ $? -ne 0 ]
+then
+  track=-1
+fi
+
+position=$(echo '{ "command": ["get_property", "time-pos"] }' | socat - /tmp/mpvsocket | grep -ioP '"data":\K[^,]+') 2> /dev/null
+#remaining=$(echo '{ "command": ["get_property", "time-remaining"] }' | socat - /tmp/mpvsocket | grep -ioP '"data":\K[^,]+') 2> /dev/null
+duration=$(echo '{ "command": ["get_property", "duration"] }' | socat - /tmp/mpvsocket | grep -ioP '"data":\K[^,]+') 2> /dev/null
+volume=$(echo '{ "command": ["get_property", "volume"] }' | socat - /tmp/mpvsocket | grep -ioP '"data":\K[^,]+') 2> /dev/null
+mute=$(echo '{ "command": ["get_property", "mute"] }' | socat - /tmp/mpvsocket | grep -ioP '"data":\K[^,]+') 2> /dev/null
+pause=$(echo '{ "command": ["get_property", "pause"] }' | socat - /tmp/mpvsocket | grep -ioP '"data":\K[^,]+') 2> /dev/null
+shuffle=$(echo '{ "command": ["get_property", "shuffle"] }' | socat - /tmp/mpvsocket | grep -ioP '"data":\K[^,]+') 2> /dev/null
+loop=$(echo '{ "command": ["get_property", "loop"] }' | socat - /tmp/mpvsocket | grep -ioP '"data":\K[^,]+') 2> /dev/null
+
+echo "{ \"artist\": \"$artist\", \"title\": \"$title\", \"album\": \"$album\", \"album_artist\": \"$album_artist\", \"track\": \"$track\", \"position\": \"$position\", \"duration\": \"$duration\", \"volume\": $volume, \"mute\": $mute, \"pause\": $pause, \"shuffle\": $shuffle, \"loop\": $loop }"
